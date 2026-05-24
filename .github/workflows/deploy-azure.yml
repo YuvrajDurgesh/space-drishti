@@ -31,9 +31,9 @@ jobs:
             cd /var/www/space-drishti || exit 1
 
             echo "--- 🧹 Cleaning old stuck build processes safely ---"
-            # Sirf next-build aur purane webpack/next processes ko kill karein, pure node ko nahi!
+            # Sirf actual stuck build workers ko kill karo, PM2 daemon ko NAHI
             pkill -f "next-build" || true
-            pkill -f "next" || true
+            # "pkill -f next" hata diya — yeh PM2 ko bhi mar deta tha!
 
             echo "--- 🔄 Pulling latest changes from GitHub ---"
             git reset --hard HEAD
@@ -43,10 +43,17 @@ jobs:
             npm ci
 
             echo "--- 🏗️ Building Next.js Production Application ---"
-            npm run build
+            # nohup se build background me chalega, SSH timeout nahi hoga
+            nohup npm run build > /tmp/build.log 2>&1
+            BUILD_EXIT=$?
+            
+            if [ $BUILD_EXIT -ne 0 ]; then
+              echo "--- ❌ Build Failed! Log: ---"
+              tail -50 /tmp/build.log
+              exit 1
+            fi
 
             echo "--- 🔄 Reloading PM2 Server Instance ---"
-            # PM2 safely background me handle karega
             pm2 reload space-drishti || pm2 start npm --name "space-drishti" -- start
             pm2 save
 
