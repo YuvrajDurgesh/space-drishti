@@ -36,7 +36,7 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           port: 22
-          timeout: 30s          # ← Connection timeout (sirf connect hone ka)
+          timeout: 30s         # ← Connection timeout (sirf connect hone ka)
           command_timeout: 100m  # ← Script run hone ka timeout
           script: |
             echo "--- 🚀 Deployment Started ---"
