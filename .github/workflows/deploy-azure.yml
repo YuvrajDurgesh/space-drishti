@@ -24,6 +24,19 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           port: 22
           timeout: 20m
+          command_timeout: 20m   # ← YEH ADD KARO
+          debug: true             # ← YEH ADD KARO temporarily
+          script: |
+            echo "Connected!"
+
+      - name: SSH into Azure VM and Execution
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          port: 22
+          timeout: 20m
           script: |
             echo "--- 🚀 Deployment Started ---"
             
