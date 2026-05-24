@@ -30,29 +30,24 @@ jobs:
             # 1. Project directory me ghusein
             cd /var/www/space-drishti || exit 1
 
-            echo "--- 🧹 Cleaning old stuck build processes ---"
-            # Purane kisi bhi stuck build process ya next-router locks ko force kill karna
+            echo "--- 🧹 Cleaning old stuck build processes safely ---"
+            # Sirf next-build aur purane webpack/next processes ko kill karein, pure node ko nahi!
             pkill -f "next-build" || true
-            killall node || true
+            pkill -f "next" || true
 
             echo "--- 🔄 Pulling latest changes from GitHub ---"
-            # Kisi bhi local file change ko overwrite karke clean pull karna
             git reset --hard HEAD
             git pull origin main
 
             echo "--- 📦 Installing fresh dependencies ---"
-            # Fresh packages install karna bina package-lock badle
             npm ci
 
             echo "--- 🏗️ Building Next.js Production Application ---"
-            # Fresh production build create karna
             npm run build
 
             echo "--- 🔄 Reloading PM2 Server Instance ---"
-            # Zero-downtime reload. Agar server pehli baar chal raha hai to start karega
+            # PM2 safely background me handle karega
             pm2 reload space-drishti || pm2 start npm --name "space-drishti" -- start
-            
-            # Changes ko save karna taaki VM restart pe bacha rahe
             pm2 save
 
             echo "--- 🎉 Deployment Successfully Finished! ---"
