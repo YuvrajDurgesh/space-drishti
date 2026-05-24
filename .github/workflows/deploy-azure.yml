@@ -1,0 +1,58 @@
+name: Deploy Space Drishti to Azure VM
+
+on:
+  push:
+    branches:
+      - main  # Jab bhi aap main branch pe push/merge karenge, ye trigger hoga
+  workflow_dispatch: # Taaki GitHub Actions UI se manual bhi click karke deploy kar sakein
+
+jobs:
+  deploy:
+    name: Production Build and Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: SSH into Azure VM and Execution
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          port: 22
+          timeout: 20m
+          script: |
+            echo "--- 🚀 Deployment Started ---"
+            
+            # 1. Project directory me ghusein
+            cd /var/www/space-drishti || exit 1
+
+            echo "--- 🧹 Cleaning old stuck build processes ---"
+            # Purane kisi bhi stuck build process ya next-router locks ko force kill karna
+            pkill -f "next-build" || true
+            killall node || true
+
+            echo "--- 🔄 Pulling latest changes from GitHub ---"
+            # Kisi bhi local file change ko overwrite karke clean pull karna
+            git reset --hard HEAD
+            git pull origin main
+
+            echo "--- 📦 Installing fresh dependencies ---"
+            # Fresh packages install karna bina package-lock badle
+            npm ci
+
+            echo "--- 🏗️ Building Next.js Production Application ---"
+            # Fresh production build create karna
+            npm run build
+
+            echo "--- 🔄 Reloading PM2 Server Instance ---"
+            # Zero-downtime reload. Agar server pehli baar chal raha hai to start karega
+            pm2 reload space-drishti || pm2 start npm --name "space-drishti" -- start
+            
+            # Changes ko save karna taaki VM restart pe bacha rahe
+            pm2 save
+
+            echo "--- 🎉 Deployment Successfully Finished! ---"

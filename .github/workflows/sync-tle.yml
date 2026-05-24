@@ -1,0 +1,64 @@
+# .github/workflows/sync-tle.yml
+#
+# Space Drishti — Automated TLE Data Sync
+# Runs TWICE daily: 06:00 UTC and 18:00 UTC (11:30 IST and 23:30 IST)
+#
+# SETUP — 4 steps:
+#
+# Step 1: Add these 4 secrets in GitHub repo
+#   → Settings → Secrets and variables → Actions → New repository secret
+#
+#   SPACETRACK_USER           your Space-Track.org login email
+#   SPACETRACK_PASS           your Space-Track.org password
+#   SUPABASE_URL              https://xxxxx.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY eyJ... (Supabase Dashboard → Settings → API → service_role)
+#
+# Step 2: Copy this file to  .github/workflows/sync-tle.yml  in your repo
+#
+# Step 3: Push to GitHub (main branch)
+#
+# Step 4: Test manually
+#   → GitHub repo → Actions tab → "Sync TLE Data" → Run workflow button
+
+name: Sync TLE Data
+
+on:
+  schedule:
+    - cron: '0 6  * * *'   # 06:00 UTC = 11:30 IST
+    - cron: '0 18 * * *'   # 18:00 UTC = 23:30 IST
+  workflow_dispatch:        # enables manual "Run workflow" button in Actions UI
+
+jobs:
+  sync:
+    name: Fetch TLEs and upsert to Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TLE sync
+        run: npx ts-node scripts/sync-tle.ts
+        env:
+          SPACETRACK_USER:           ${{ secrets.SPACETRACK_USER }}
+          SPACETRACK_PASS:           ${{ secrets.SPACETRACK_PASS }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_ACTIONS:            'true'
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Sync complete" >> $GITHUB_STEP_SUMMARY
+          echo "Time (UTC): $(date -u '+%Y-%m-%d %H:%M')" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
