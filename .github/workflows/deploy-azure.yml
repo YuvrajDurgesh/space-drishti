@@ -10,7 +10,7 @@ jobs:
   deploy:
     name: Production Build and Deploy
     runs-on: ubuntu-latest
-    # timeout-minutes: 20
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -36,6 +36,8 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           port: 22
+          timeout: 30s          # ← Connection timeout (sirf connect hone ka)
+          command_timeout: 100m  # ← Script run hone ka timeout
           script: |
             echo "--- 🚀 Deployment Started ---"
 
