@@ -36,38 +36,35 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           port: 22
-          timeout: 20m
+          timeout: 20
           script: |
             echo "--- 🚀 Deployment Started ---"
-            
-            # 1. Project directory me ghusein
+
             cd /var/www/space-drishti || exit 1
 
-            echo "--- 🧹 Cleaning old stuck build processes safely ---"
-            # Sirf actual stuck build workers ko kill karo, PM2 daemon ko NAHI
-            pkill -f "next-build" || true
-            # "pkill -f next" hata diya — yeh PM2 ko bhi mar deta tha!
+            echo "--- 🧹 Cleaning stuck builds ---"
+            # pkill bilkul nahi — sirf .next/cache clean karo
+            rm -rf .next
 
-            echo "--- 🔄 Pulling latest changes from GitHub ---"
+            echo "--- 🔄 Pulling latest changes ---"
             git reset --hard HEAD
             git pull origin main
 
-            echo "--- 📦 Installing fresh dependencies ---"
+            echo "--- 📦 Installing dependencies ---"
             npm ci
 
-            echo "--- 🏗️ Building Next.js Production Application ---"
-            # nohup se build background me chalega, SSH timeout nahi hoga
-            nohup npm run build > /tmp/build.log 2>&1
+            echo "--- 🏗️ Building ---"
+            npm run build > /tmp/build.log 2>&1
             BUILD_EXIT=$?
-            
+
             if [ $BUILD_EXIT -ne 0 ]; then
-              echo "--- ❌ Build Failed! Log: ---"
-              tail -50 /tmp/build.log
-              exit 1
+            echo "--- ❌ Build Failed ---"
+            tail -50 /tmp/build.log
+            exit 1
             fi
 
-            echo "--- 🔄 Reloading PM2 Server Instance ---"
+            echo "--- 🔄 Reloading PM2 ---"
             pm2 reload space-drishti || pm2 start npm --name "space-drishti" -- start
             pm2 save
 
-            echo "--- 🎉 Deployment Successfully Finished! ---"
+            echo "--- 🎉 Done! ---"
