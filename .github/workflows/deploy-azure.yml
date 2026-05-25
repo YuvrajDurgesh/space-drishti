@@ -48,9 +48,10 @@ jobs:
             echo "--- 📦 Installing dependencies ---"
             npm ci
 
-            echo "--- 🏗️ Building Production Application (CRITICAL STEP) ---"
-            # Build yahan chalega taaki folder swap hone se pehle .next directory taiyar ho jaye
-            npm run build
+            echo "--- 🏗️ Building Production Application (Webpack Mode) ---"
+            # NEXT_TELEMETRY_DISABLED aur Webpack flag ke sath fast build
+            export NEXT_PRIVATE_LOCAL_WEBPACK=true
+            npm run build -- --no-lint
 
             echo "--- 🔄 Swapping Old Code with New Code ---"
             # Purane old backup ko delete karein
