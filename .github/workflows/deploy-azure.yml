@@ -46,6 +46,9 @@ jobs:
             # Install dependencies
             npm ci
 
+            # Build Next.js app
+            npm run build
+
             # Replace old deployment with new one
             rm -rf /home/mr.yuvraj99/space-drishti-old
             mv /home/mr.yuvraj99/space-drishti /home/mr.yuvraj99/space-drishti-old 2>/dev/null || true
@@ -53,5 +56,6 @@ jobs:
 
             # Restart using PM2
             cd /home/mr.yuvraj99/space-drishti
-            pm2 restart space-drishti || pm2 start npm --name "space-drishti" -- start
+            pm2 delete space-drishti 2>/dev/null || true
+            pm2 start npm --name "space-drishti" -- start
             pm2 save
