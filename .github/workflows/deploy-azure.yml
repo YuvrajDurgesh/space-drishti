@@ -46,8 +46,8 @@ jobs:
             # Install dependencies
             npm ci
 
-            # Build Next.js app
-            npm run build
+            # Build Next.js app — fail hone par script rok do
+            npm run build || exit 1
 
             # Replace old deployment with new one
             rm -rf /home/mr.yuvraj99/space-drishti-old
