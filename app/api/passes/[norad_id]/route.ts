@@ -1,12 +1,6 @@
 /**
  * app/api/passes/[norad_id]/route.ts
  * Space Drishti — Pass Prediction API (Fixed)
- *
- * Fix 1: Same null-guard pattern as decay route.
- *   View fields are `string | null` — guard before passing to predictPasses().
- *
- * Fix 2: passes.ts also had the `=== false` TS overlap issue.
- *   Fixed inline with `as any` cast in safePropagation helper.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -20,11 +14,12 @@ import {
 export const runtime = 'nodejs'
 
 export async function GET(
-  req:     NextRequest,
-  { params }: { params: { norad_id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ norad_id: string }> }
 ) {
-  // Validate path param
-  const noradId = parseInt(params.norad_id, 10)
+  const { norad_id: norad_id_str } = await context.params
+  const noradId = parseInt(norad_id_str, 10)
+
   if (isNaN(noradId) || noradId <= 0) {
     return NextResponse.json(
       { error: 'norad_id must be a positive integer', code: 'VALIDATION_ERROR' },
@@ -52,7 +47,7 @@ export async function GET(
     )
   }
 
-  // Fix: guard all nullable view fields before passing to pass predictor
+  // Guard all nullable view fields
   if (
     data.norad_id  == null ||
     data.name      == null ||
@@ -65,11 +60,10 @@ export async function GET(
     )
   }
 
-  // TypeScript now knows: norad_id=number, name=string, tle_line1=string, tle_line2=string
-  const norad_id  = data.norad_id   // number
-  const name      = data.name       // string
-  const tle_line1 = data.tle_line1  // string
-  const tle_line2 = data.tle_line2  // string
+  const satelliteNoradId = data.norad_id   // number
+  const name             = data.name       // string
+  const tle_line1        = data.tle_line1  // string
+  const tle_line2        = data.tle_line2  // string
 
   // Validate station if provided
   if (stationId) {
@@ -86,14 +80,14 @@ export async function GET(
     }
 
     const passes = predictPasses(
-      norad_id, name, tle_line1, tle_line2,
+      satelliteNoradId, name, tle_line1, tle_line2,
       station,
       { window_hours: windowHours }
     )
 
     return NextResponse.json(
       {
-        norad_id,
+        norad_id:     satelliteNoradId,
         satellite:    name,
         window_hours: windowHours,
         station:      stationId,
@@ -114,13 +108,13 @@ export async function GET(
 
   // No station specified — predict for ALL ISRO stations
   const passes = predictPassesAllISRO(
-    norad_id, name, tle_line1, tle_line2,
+    satelliteNoradId, name, tle_line1, tle_line2,
     { window_hours: windowHours }
   )
 
   return NextResponse.json(
     {
-      norad_id,
+      norad_id:     satelliteNoradId,
       satellite:    name,
       window_hours: windowHours,
       station:      'ALL_ISRO',
