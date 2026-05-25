@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "."
-          target: "/home/${{ secrets.AZURE_VM_USER }}/space-drishti-new"
+          target: "/home/mr.yuvraj99/space-drishti-new"
 
       - name: Build and restart on VM
         uses: appleboy/ssh-action@v1.0.3
@@ -31,7 +31,7 @@ jobs:
           command_timeout: 30m
           script: |
             # .env.local banao
-            cat > /home/${{ secrets.AZURE_VM_USER }}/space-drishti-new/.env.local << 'EOF'
+            cat > /home/mr.yuvraj99/space-drishti-new/.env.local << 'EOF'
             SPACETRACK_USER=${{ secrets.SPACETRACK_USER }}
             SPACETRACK_PASS=${{ secrets.SPACETRACK_PASS }}
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -40,17 +40,17 @@ jobs:
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             EOF
 
-            cd /home/${{ secrets.AZURE_VM_USER }}/space-drishti-new
+            cd /home/mr.yuvraj99/space-drishti-new
 
             # Dependencies install
             npm ci
 
             # Swap old with new
-            rm -rf /home/${{ secrets.AZURE_VM_USER }}/space-drishti-old
-            mv /home/${{ secrets.AZURE_VM_USER }}/space-drishti /home/${{ secrets.AZURE_VM_USER }}/space-drishti-old 2>/dev/null || true
-            mv /home/${{ secrets.AZURE_VM_USER }}/space-drishti-new /home/${{ secrets.AZURE_VM_USER }}/space-drishti
+            rm -rf /home/mr.yuvraj99/space-drishti-old
+            mv /home/mr.yuvraj99/space-drishti /home/mr.yuvraj99/space-drishti-old 2>/dev/null || true
+            mv /home/mr.yuvraj99/space-drishti-new /home/mr.yuvraj99/space-drishti
 
             # PM2 restart
-            cd /home/${{ secrets.AZURE_VM_USER }}/space-drishti
+            cd /home/mr.yuvraj99/space-drishti
             pm2 restart space-drishti || pm2 start npm --name "space-drishti" -- start
             pm2 save
