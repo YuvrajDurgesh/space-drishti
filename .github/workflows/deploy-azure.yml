@@ -13,7 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Code ko fresh 'space-drishti-new' folder me copy karein
       - name: Copy code to VM
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -23,7 +22,6 @@ jobs:
           source: "."
           target: "/home/mr.yuvraj99/space-drishti-new"
 
-      # 2. Build banana aur safely folders swap karna
       - name: Build and restart on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -32,7 +30,7 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           command_timeout: 30m
           script: |
-            # .env.local file generate karna
+            # .env.local banao
             cat > /home/mr.yuvraj99/space-drishti-new/.env.local << 'EOF'
             SPACETRACK_USER=${{ secrets.SPACETRACK_USER }}
             SPACETRACK_PASS=${{ secrets.SPACETRACK_PASS }}
@@ -42,33 +40,17 @@ jobs:
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             EOF
 
-            # Naye folder me ghusein
             cd /home/mr.yuvraj99/space-drishti-new
 
-            echo "--- 📦 Installing dependencies ---"
+            # Dependencies install
             npm ci
 
-            echo "--- 🏗️ Building Production Application (Webpack Mode) ---"
-            # NEXT_TELEMETRY_DISABLED aur Webpack flag ke sath fast build
-            export NEXT_PRIVATE_LOCAL_WEBPACK=true
-            npm run build -- --no-lint
-
-            echo "--- 🔄 Swapping Old Code with New Code ---"
-            # Purane old backup ko delete karein
+            # Swap old with new
             rm -rf /home/mr.yuvraj99/space-drishti-old
-            
-            # Current chal rahe folder ko old bana dein
             mv /home/mr.yuvraj99/space-drishti /home/mr.yuvraj99/space-drishti-old 2>/dev/null || true
-            
-            # Naye built folder ko main live folder bana dein
             mv /home/mr.yuvraj99/space-drishti-new /home/mr.yuvraj99/space-drishti
 
-            echo "--- 🚀 Restarting PM2 Server ---"
+            # PM2 restart
             cd /home/mr.yuvraj99/space-drishti
-            
-            # Purane PM2 process ko delete karke fresh context ke sath run karna (Host flag fix ke sath)
-            pm2 delete space-drishti 2>/dev/null || true
-            pm2 start npm --name "space-drishti" -- exec "next start -p 3000 -H 127.0.0.1"
-            
+            pm2 restart space-drishti || pm2 start npm --name "space-drishti" -- start
             pm2 save
-            echo "--- 🎉 Done! Deployment Successful ---"
