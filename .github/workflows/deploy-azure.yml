@@ -6,67 +6,51 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Create .env.local
-        run: |
-          cat > .env.local << 'EOF'
-          SPACETRACK_USER=${{ secrets.SPACETRACK_USER }}
-          SPACETRACK_PASS=${{ secrets.SPACETRACK_PASS }}
-          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          EOF
-
-      - name: Build Next.js
-        run: npm run build
-
-      - name: Package build output
-        run: |
-          tar -czf deploy.tar.gz \
-            .next \
-            public \
-            package.json \
-            package-lock.json \
-            next.config.ts \         # ← .js se .ts kiya
-            .env.local
-
-      - name: Copy build to VM
+      - name: Copy code to VM
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_KEY }}
-          source: "deploy.tar.gz"
-          target: "/home/${{ secrets.AZURE_VM_USER }}/"
+          source: "."
+          target: "/home/${{ secrets.AZURE_VM_USER }}/space-drishti-new"
 
-      - name: Start app on VM
+      - name: Build and restart on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_KEY }}
+          command_timeout: 30m
           script: |
-            cd /home/${{ secrets.AZURE_VM_USER }}
-            rm -rf space-drishti-old
-            mv space-drishti space-drishti-old 2>/dev/null || true
-            mkdir space-drishti && cd space-drishti
-            tar -xzf ../deploy.tar.gz
-            npm ci --omit=dev
+            # .env.local banao
+            cat > /home/${{ secrets.AZURE_VM_USER }}/space-drishti-new/.env.local << 'EOF'
+            SPACETRACK_USER=${{ secrets.SPACETRACK_USER }}
+            SPACETRACK_PASS=${{ secrets.SPACETRACK_PASS }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            EOF
+
+            cd /home/${{ secrets.AZURE_VM_USER }}/space-drishti-new
+
+            # Dependencies install
+            npm ci
+
+            # Swap old with new
+            rm -rf /home/${{ secrets.AZURE_VM_USER }}/space-drishti-old
+            mv /home/${{ secrets.AZURE_VM_USER }}/space-drishti /home/${{ secrets.AZURE_VM_USER }}/space-drishti-old 2>/dev/null || true
+            mv /home/${{ secrets.AZURE_VM_USER }}/space-drishti-new /home/${{ secrets.AZURE_VM_USER }}/space-drishti
+
+            # PM2 restart
+            cd /home/${{ secrets.AZURE_VM_USER }}/space-drishti
             pm2 restart space-drishti || pm2 start npm --name "space-drishti" -- start
             pm2 save
