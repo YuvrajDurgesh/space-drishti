@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest  # 7GB RAM free!
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -24,7 +24,7 @@ jobs:
 
       - name: Create .env.local
         run: |
-          cat > .env.local << EOF
+          cat > .env.local << 'EOF'
           SPACETRACK_USER=${{ secrets.SPACETRACK_USER }}
           SPACETRACK_PASS=${{ secrets.SPACETRACK_PASS }}
           NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -37,8 +37,9 @@ jobs:
         run: npm run build
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
+          NEXT_TURBOPACK: "0"        # ← yahan add kiya
+          TURBOPACK: "0"             # ← dono try karo
 
-      # Build output ko tar karke VM pe bhejo
       - name: Package build output
         run: |
           tar -czf deploy.tar.gz \
@@ -46,7 +47,7 @@ jobs:
             public \
             package.json \
             package-lock.json \
-            next.config.js \
+            next.config.ts \         # ← .js se .ts kiya
             .env.local
 
       - name: Copy build to VM
@@ -66,19 +67,10 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
             cd /home/${{ secrets.AZURE_VM_USER }}
-
-            # Purana backup rakho
             rm -rf space-drishti-old
             mv space-drishti space-drishti-old 2>/dev/null || true
             mkdir space-drishti && cd space-drishti
-
-            # Extract build
             tar -xzf ../deploy.tar.gz
-
-            # Sirf production dependencies install karo (devDeps nahi)
             npm ci --omit=dev
-
-            # PM2 se restart
             pm2 restart space-drishti || pm2 start npm --name "space-drishti" -- start
-
             pm2 save
