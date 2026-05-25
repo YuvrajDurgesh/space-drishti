@@ -2,7 +2,8 @@ name: Deploy to Azure VM
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -30,7 +31,7 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           command_timeout: 30m
           script: |
-            # .env.local banao
+            # Create .env.local file
             cat > /home/mr.yuvraj99/space-drishti-new/.env.local << 'EOF'
             SPACETRACK_USER=${{ secrets.SPACETRACK_USER }}
             SPACETRACK_PASS=${{ secrets.SPACETRACK_PASS }}
@@ -42,15 +43,15 @@ jobs:
 
             cd /home/mr.yuvraj99/space-drishti-new
 
-            # Dependencies install
+            # Install dependencies
             npm ci
 
-            # Swap old with new
+            # Replace old deployment with new one
             rm -rf /home/mr.yuvraj99/space-drishti-old
             mv /home/mr.yuvraj99/space-drishti /home/mr.yuvraj99/space-drishti-old 2>/dev/null || true
             mv /home/mr.yuvraj99/space-drishti-new /home/mr.yuvraj99/space-drishti
 
-            # PM2 restart
+            # Restart using PM2
             cd /home/mr.yuvraj99/space-drishti
             pm2 restart space-drishti || pm2 start npm --name "space-drishti" -- start
             pm2 save
