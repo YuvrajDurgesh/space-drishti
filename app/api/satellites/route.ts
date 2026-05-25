@@ -32,6 +32,7 @@ import {
   type LatestTLERow,
 } from '@/lib/validators'
 
+
 // ─── GET handler ─────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
