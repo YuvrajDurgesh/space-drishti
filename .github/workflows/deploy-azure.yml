@@ -1,71 +1,84 @@
-name: Deploy Space Drishti to Azure VM
+name: Deploy to Azure VM
 
 on:
   push:
-    branches:
-      - main  # Jab bhi aap main branch pe push/merge karenge, ye trigger hoga
-  workflow_dispatch: # Taaki GitHub Actions UI se manual bhi click karke deploy kar sakein
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Production Build and Deploy
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  build-and-deploy:
+    runs-on: ubuntu-latest  # 7GB RAM free!
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # - name: SSH into Azure VM and Execution
-      #   uses: appleboy/ssh-action@v1.0.3
-      #   with:
-      #     host: ${{ secrets.AZURE_VM_IP }}
-      #     username: ${{ secrets.AZURE_VM_USER }}
-      #     key: ${{ secrets.AZURE_SSH_KEY }}
-      #     port: 22
-      #     timeout: 20m
-      #     command_timeout: 20m   # ← YEH ADD KARO
-      #     debug: true             # ← YEH ADD KARO temporarily
-      #     script: |
-      #       echo "Connected!"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-      - name: SSH into Azure VM and Execution
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env.local
+        run: |
+          cat > .env.local << EOF
+          SPACETRACK_USER=${{ secrets.SPACETRACK_USER }}
+          SPACETRACK_PASS=${{ secrets.SPACETRACK_PASS }}
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EOF
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=6144"
+
+      # Build output ko tar karke VM pe bhejo
+      - name: Package build output
+        run: |
+          tar -czf deploy.tar.gz \
+            .next \
+            public \
+            package.json \
+            package-lock.json \
+            next.config.js \
+            .env.local
+
+      - name: Copy build to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "deploy.tar.gz"
+          target: "/home/${{ secrets.AZURE_VM_USER }}/"
+
+      - name: Start app on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_KEY }}
-          port: 22
-          timeout: 30s         # ← Connection timeout (sirf connect hone ka)
-          command_timeout: 100m  # ← Script run hone ka timeout
           script: |
-            echo "--- 🚀 Deployment Started ---"
+            cd /home/${{ secrets.AZURE_VM_USER }}
 
-            cd /var/www/space-drishti || exit 1
+            # Purana backup rakho
+            rm -rf space-drishti-old
+            mv space-drishti space-drishti-old 2>/dev/null || true
+            mkdir space-drishti && cd space-drishti
 
-            echo "--- 🧹 Cleaning stuck builds ---"
-            # pkill bilkul nahi — sirf .next/cache clean karo
-            rm -rf .next
+            # Extract build
+            tar -xzf ../deploy.tar.gz
 
-            echo "--- 🔄 Pulling latest changes ---"
-            git reset --hard HEAD
-            git pull origin main
+            # Sirf production dependencies install karo (devDeps nahi)
+            npm ci --omit=dev
 
-            echo "--- 📦 Installing dependencies ---"
-            npm ci
+            # PM2 se restart
+            pm2 restart space-drishti || pm2 start npm --name "space-drishti" -- start
 
-            echo "--- 🏗️ Building ---"
-            npm run build > /tmp/build.log 2>&1
-            BUILD_EXIT=$?
-
-            if [ $BUILD_EXIT -ne 0 ]; then
-            echo "--- ❌ Build Failed ---"
-            tail -50 /tmp/build.log
-            exit 1
-            fi
-
-            echo "--- 🔄 Reloading PM2 ---"
-            pm2 reload space-drishti || pm2 start npm --name "space-drishti" -- start
             pm2 save
-
-            echo "--- 🎉 Done! ---"
