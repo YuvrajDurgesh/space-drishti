@@ -35,10 +35,6 @@ jobs:
 
       - name: Build Next.js
         run: npm run build
-        env:
-          NODE_OPTIONS: "--max-old-space-size=6144"
-          NEXT_TURBOPACK: "0"        # ← yahan add kiya
-          TURBOPACK: "0"             # ← dono try karo
 
       - name: Package build output
         run: |
