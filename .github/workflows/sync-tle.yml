@@ -48,7 +48,8 @@ jobs:
         run: npm ci
 
       - name: Run TLE sync
-        run: npx ts-node scripts/sync-tle.ts
+        run: npx tsx scripts/sync-tle.ts
+        # run: npx ts-node scripts/sync-tle.ts
         env:
           SPACETRACK_USER:           ${{ secrets.SPACETRACK_USER }}
           SPACETRACK_PASS:           ${{ secrets.SPACETRACK_PASS }}

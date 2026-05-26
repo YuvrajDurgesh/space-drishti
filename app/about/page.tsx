@@ -250,7 +250,7 @@ export default function AboutPage() {
               }}>
                 Research Tools
               </Link>
-              <a href="https://github.com/your-username/space-drishti" target="_blank" rel="noopener noreferrer" style={{
+              <a href="https://github.com/YuvrajDurgesh/space-drishti" target="_blank" rel="noopener noreferrer" style={{
                 padding: '13px 28px', borderRadius: 10, fontSize: 12,
                 background: 'transparent', color: '#e8edf5',
                 border: '1px solid rgba(255,255,255,0.1)',
@@ -511,7 +511,7 @@ export default function AboutPage() {
               }}>
                 Open Platform →
               </Link>
-              <a href="https://github.com/your-username/space-drishti" target="_blank" rel="noopener noreferrer" style={{
+              <a href="https://github.com/YuvrajDurgesh/space-drishti" target="_blank" rel="noopener noreferrer" style={{
                 padding: '13px 28px', borderRadius: 10, fontSize: 12,
                 background: 'transparent', color: '#e8edf5',
                 border: '1px solid rgba(255,255,255,0.1)',
@@ -534,7 +534,7 @@ export default function AboutPage() {
               {[
                 { label: 'Globe',      href: '/' },
                 { label: 'Research',   href: '/research' },
-                { label: 'GitHub',     href: 'https://github.com/your-username/space-drishti' },
+                { label: 'GitHub',     href: 'https://github.com/YuvrajDurgesh/space-drishti' },
                 { label: 'Space-Track', href: 'https://www.space-track.org' },
               ].map(l => (
                 <a key={l.label} href={l.href} style={{ fontSize: 11, color: '#334455', fontFamily: 'monospace', textDecoration: 'none' }}>
