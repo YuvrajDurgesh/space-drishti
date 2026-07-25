@@ -319,7 +319,7 @@ export function SatelliteSwarm({
 
   const geometry = useMemo(() => new THREE.SphereGeometry(1, 6, 6), [])
   const material = useMemo(() => new THREE.MeshBasicMaterial({
-    color:        0xffffff,   // ← MUST be white when using vertexColors
+    color:        0xffffff,   // ← MUST be white when using vertexColors 
     vertexColors: false,
   }), [])
 
