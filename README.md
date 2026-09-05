@@ -426,3 +426,5 @@ MIT License — free to use, modify, and distribute with attribution.
 
 *Built with ❤️ for the Indian space research community.*
 *Data courtesy of Space-Track.org (18th Space Defense Squadron, US Space Command)*
+
+<!-- Security scan triggered at 2026-09-05 07:29:17 -->
